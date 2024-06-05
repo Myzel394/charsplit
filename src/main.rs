@@ -3,8 +3,10 @@ use std::{char, io::{self, Read}, iter::Iterator, slice::Iter};
 use colored::Colorize;
 
 mod config;
+mod charset;
 
 use config::config::Config;
+use charset::charset::{Charset, Utf8Charset};
 
 macro_rules! format_num_as_byte {
     ($a:expr) => {
@@ -12,14 +14,33 @@ macro_rules! format_num_as_byte {
     };
 }
 
-macro_rules! _format_grapheme {
-    ($byte:expr, $type:expr, $truecolor:expr) => {
-        _format_grapheme!($byte, "", $type, $truecolor)
-    };
-    ($byte:expr, $character:expr, $type: expr, $truecolor:expr) => {
+macro_rules! format_first_grapheme_byte {
+    ($byte:expr, $character:expr, $type: expr, $truecolor:expr, $utf8:expr) => {
         format!(
-            "{}\t{} ({})\t=\t{}\n",
+            "{0}\t{1} ({2}; {3}, 0x{3:X})\t=\t{4}\t{5}\n",
             $character.to_string().yellow(),
+            (|| {
+                let text = format_num_as_byte!($byte);
+
+                if ($truecolor) {
+                    // Use terminal color   
+                    return text.truecolor(128, 128, 128); 
+                } else {
+                    return text.bright_green();
+                }
+            })(),
+            format!("{:03}", $byte).bright_blue(),
+            (*$character) as u32,
+            $type,
+            if (*$utf8 == 0) { "".to_string() } else { Utf8Charset::get_description($utf8) },
+        )
+    };
+}
+
+macro_rules! format_grapheme_byte {
+    ($byte:expr, $type: expr, $truecolor:expr) => {
+        format!(
+            " \t{} ({})\t=\t{}\t \n",
             (|| {
                 let text = format_num_as_byte!($byte);
 
@@ -41,7 +62,7 @@ enum ByteType {
     Ascii,
     Utf8Base,
     Utf8Continuation,
-    NLFeed,
+    AsciiNewLine,
     Unknown
 }
 
@@ -53,7 +74,7 @@ impl fmt::Display for ByteType {
 
 fn get_byte_type(byte: &u8) -> ByteType {
     if byte == &0x0A {
-        return ByteType::NLFeed;
+        return ByteType::AsciiNewLine;
     }
 
     if byte >> 7 == 0 {
@@ -77,13 +98,24 @@ fn format_grapheme(grapheme: &char, use_truecolors: &bool) -> String {
 
     let mut string = "".to_string();
     let first_byte = &bytes.get(0).unwrap();
+
     string.push_str(
-        &_format_grapheme!(first_byte, grapheme, get_byte_type(&first_byte), *use_truecolors)
+        &format_first_grapheme_byte!(
+            &first_byte,
+            grapheme,
+            get_byte_type(&first_byte),
+            *use_truecolors,
+            &(*grapheme as u32)
+        )
     );
 
     for byte in &bytes[1..] {
         string.push_str(
-            &_format_grapheme!(byte, get_byte_type(&byte), *use_truecolors)
+            &format_grapheme_byte!(
+                byte,
+                get_byte_type(&byte),
+                *use_truecolors
+            )
         );
     }
 
