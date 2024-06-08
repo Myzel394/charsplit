@@ -4,9 +4,11 @@ use colored::Colorize;
 
 mod config;
 mod charset;
+mod utf8_groups;
 
 use config::config::Config;
 use charset::charset::{Charset, Utf8Charset};
+
 
 macro_rules! format_num_as_byte {
     ($a:expr) => {

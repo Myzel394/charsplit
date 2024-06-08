@@ -178,12 +178,12 @@ def main() -> None:
     points.update(get_ranges_from_matrix(table_matrix))
     points.update(get_ranges_from_tr_labeled(table_tr_labeled))
 
-    path = Path("../src/utf8_ranges.rs")
+    path = Path("../src/utf8_groups.rs")
 
     text = """
-pub mod utf8_ranges {
-    fn get_group(value: &u32) -> String {
-        return (match value {
+pub mod utf8_groups {
+    pub fn get_group(value: &u32) -> String {
+        return (match *value {
 """
 
     for description, ranges in points.items():
@@ -191,6 +191,7 @@ pub mod utf8_ranges {
             text += f'            {r.start}..={r.end} => "{description}",\n'
 
     text += """
+            _ => "Unknown",
         }).to_string()
     }
 }
