@@ -8,6 +8,8 @@ and graphemes, and give you information about them.
 
 ```bash
 $ echo "Hello and привет" | charsplit
+```
+```
  Grapheme  Byte in binary  Byte in decimal  Unicode in decimal  Unicode in hex  Byte Type         Unicode Group
  H         1001000         72               72                  0x48            Ascii             Basic Latin (LatinAlphabet:Uppercase)
  e         1100101         101              101                 0x65            Ascii             Basic Latin (LatinAlphabet:Lowercase)
@@ -32,7 +34,5 @@ $ echo "Hello and привет" | charsplit
  т         11010001        209              1090                0x442           Utf8Base          Cyrillic
            10000010        130                                                  Utf8Continuation
            1010            10               10                  0xA             AsciiNewLine      Control codes (C0)
-
-
 ```
 
