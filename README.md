@@ -9,6 +9,7 @@ and graphemes, and give you information about them.
 ```bash
 $ echo "Hello and привет" | charsplit
 ```
+will output:
 ```
  Grapheme  Byte in binary  Byte in decimal  Unicode in decimal  Unicode in hex  Byte Type         Unicode Group
  H         1001000         72               72                  0x48            Ascii             Basic Latin (LatinAlphabet:Uppercase)
