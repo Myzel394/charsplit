@@ -1,88 +1,40 @@
-use core::fmt;
-use std::{char, io::{self, Read}, iter::Iterator, slice::Iter};
-use colored::Colorize;
+use std::{io::{self, IsTerminal, Read}, process::{exit, ExitCode}};
+use clap::Parser;
+use cli::cli::Arguments;
 use config::config::Config;
-use charset::charset::{Charset, Utf8Charset};
 use prettytable::{format, row, Table};
+use utils::utils::format_grapheme;
 
 mod config;
 mod charset;
 mod utf8_groups;
+mod utils;
+mod cli;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
-enum ByteType {
-    Ascii,
-    Utf8Base,
-    Utf8Continuation,
-    AsciiNewLine,
-    Unknown
-}
-
-impl fmt::Display for ByteType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-fn get_byte_type(byte: &u8) -> ByteType {
-    if byte == &0x0A {
-        return ByteType::AsciiNewLine;
-    }
-
-    if byte >> 7 == 0 {
-        return ByteType::Ascii;
-    }
-
-    if byte >> 5 == 0b110 || byte >> 4 == 0b1110 || byte >> 3 == 0b11110 {
-        return ByteType::Utf8Base;
-    }
-
-    if byte >> 6 == 0b10 {
-        return ByteType::Utf8Continuation;
-    }
-
-    ByteType::Unknown
-}
-
-fn format_grapheme(table: &mut Table, grapheme: &char, use_truecolors: &bool) {
-    let grapheme_string = grapheme.to_string();
-    let bytes = grapheme_string.as_bytes();
-
-    let first_byte = bytes.get(0).unwrap();
-
-    table.add_row(row![
-        grapheme,
-        format!("{:0b}", first_byte),
-        format!("{}", (*first_byte) as u32),
-        (*grapheme) as u32,
-        format!("0x{:X}", (*grapheme) as u32),
-        get_byte_type(&first_byte),
-        Utf8Charset::get_description(&((*grapheme) as u32)),
-    ]);
-
-
-    for byte in &bytes[1..] {
-        table.add_row(row![
-            " ",
-            format!("{:08b}", byte),
-            format!("{}", (*byte) as u32),
-            " ",
-            " ",
-            get_byte_type(&byte),
-            " ",
-        ]);
-    }
-
-}
-
-fn main() {
+fn main() -> ExitCode {
     let config = Config::build();
+    let args = Arguments::parse();
 
-    let input = {
-        let mut input = String::new();
-        io::stdin().read_to_string(&mut input).unwrap();
-        input
+    let input = match args.text.as_str() {
+        "" => {
+            if io::stdin().is_terminal() {
+                String::new()
+            } else {
+                let mut input = String::new();
+                io::stdin().read_to_string(&mut input).unwrap();
+                input
+            }
+        }
+        _ => args.text
     };
+
+    dbg!(&input);
+
+    if input.len() == 0 {
+        eprintln!("Please provide some input either via argument or stdin");
+        return ExitCode::FAILURE;
+    }
+
     let graphemes = input.chars();
 
     let mut table = Table::new();
@@ -106,4 +58,6 @@ fn main() {
     ]);
 
     table.printstd();
+
+    ExitCode::SUCCESS
 }
